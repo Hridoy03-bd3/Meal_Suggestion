@@ -5,7 +5,7 @@ import pandas as pd
 import joblib
 
 # Load the trained model
-model = joblib.load('meal_suggestion_model.pkl')
+model = joblib.load('random_forest_model.pkl')
 
 st.title("🍽️ Meal Suggestion Predictor")
 st.write("Enter your details below to get a personalized meal suggestion:")
@@ -104,3 +104,4 @@ input_data = pd.DataFrame({
 if st.button("Get Meal Suggestion"):
     prediction = model.predict(input_data)
     st.success(f"🍽️ Predicted Meal Suggestion: {prediction[0]}")
+
