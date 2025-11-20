@@ -1,111 +1,106 @@
+# app.py
+
 import streamlit as st
-import numpy as np
 import pandas as pd
 import joblib
 
-# ---------------------------
-# Load saved model and encoders
-# ---------------------------
-model = joblib.load("model.pkl")
-label_encoders = joblib.load("label_encoders.pkl")
+# Load the trained model
+model = joblib.load('meal_suggestion_model.pkl')
 
-# ---------------------------
-# Helper function to encode inputs
-# ---------------------------
-def encode_input(column_name, value):
-    if column_name in label_encoders:
-        return int(label_encoders[column_name].transform([value])[0])
-    return value
+st.title("🍽️ Meal Suggestion Predictor")
+st.write("Enter your details below to get a personalized meal suggestion:")
 
-# ---------------------------
-# Streamlit UI
-# ---------------------------
-st.title("Meal Suggestion Predictor 🍽️")
-st.write("Enter your details to get a personalized meal suggestion:")
-
-# User inputs
-age = st.selectbox("Age", ["18-20", "21-23", "23-26"])
-gender = st.selectbox("Gender", ["Male", "Female"])
-height = st.selectbox("Height (in feet and inch)", [
-    "Below 5 feet 0 inches",
-    "5 feet 0 inches – 5 feet 3 inches",
-    "5 feet 4 inches – 5 feet 7 inches",
-    "5 feet 8 inches – 5 feet 11 inches"
-])
-weight = st.selectbox("Weight (kg)", [
-    "Below 45 kg (Potentially Underweight)",
-    "45 kg – 55 kg",
-    "56 kg – 65 kg",
-    "66 kg – 75 kg",
-    "76 kg or Above (Potentially Overweight/Obese)"
-])
-smoking = st.selectbox("Smoking Status", ["Yes", "No"])
-residential = st.selectbox("Are you a residential student (living in a hall/hostel)?", ["Yes", "No"])
-marital_status = st.selectbox("Marital Status", ["Unmarried", "Married"])
-sleep_hours = st.selectbox("How much sleep did you get last night?", [
-    "Low Sleep (Less than 5 hours)",
-    "Moderate (5-6 hours)",
-    "Optimal (7-8 hours)",
-    "Excessive (9+ hours)"
-])
-stress_level = st.selectbox("How would you describe your current stress/anxiety level?", [
-    "Low/Calm", "Moderate", "High/Exam Stress"
-])
-physical_activity = st.selectbox("Estimated physical activity level today", [
-    "Sedentary (Mostly sitting/studying )",
-    "Light (Walking to class/stairs)",
-    "Moderate (Gym/Sports less than 60 mins)",
-    "Vigorous (Sports more than 60 mins/Heavy labor)"
-])
-last_meal_time = st.selectbox("How long ago was your last proper meal?", [
-    "Less than 2 hours ago",
-    "2-4 hours ago",
-    "4-6 hours ago (Optimal hunger)",
-    "More than 6 hours ago (Skipped meal/High hunger)"
-])
-hunger_level = st.selectbox("Current feeling of hunger", [
-    "Not hungry at all",
-    "Slightly hungry",
-    "Moderately hungry (Ready to eat)",
-    "Very hungry (Feeling weak/distracted)"
-])
-skipped_meal = st.selectbox("Have you skipped a meal today?", [
-    "No, I have not skipped a meal.",
-    "Yes, I skipped Breakfast",
-    "Yes, I skipped Lunch",
-    "Yes, I skipped Dinner"
-])
-next_meal = st.selectbox("What meal are you likely to take next?", [
-    "Breakfast", "Lunch", "Dinner"
-])
-
-# ---------------------------
-# Prepare input for prediction
-# ---------------------------
-user_input = {
-    "Age": age,
-    "Gender": gender,
-    "Height (in feet and inch)": height,
-    "Weight (kg)": weight,
-    "Smoking Status": smoking,
-    "Are you a residential student (living in a hall/hostel)?": residential,
-    "Marital Status": marital_status,
-    "How much sleep did you get last night?": sleep_hours,
-    "How would you describe your current stress/anxiety level?": stress_level,
-    "What is your estimated physical activity level for today?": physical_activity,
-    "How long ago was your last proper meal (e.g., breakfast)?": last_meal_time,
-    "How would you rate your current feeling of hunger?": hunger_level,
-    "Have you already skipped a meal today (Breakfast/Lunch/Dinner)?": skipped_meal,
-    "What meal are you likely to take next?": next_meal
+# User-friendly inputs
+age_map = {"18-20":0, "21-23":1, "23-26":2}
+gender_map = {"Female":0, "Male":1, "Other":2}
+height_map = {
+    "Below 5 feet 0 inches":0,
+    "5 feet 0 inches – 5 feet 3 inches":1,
+    "5 feet 4 inches – 5 feet 7 inches":2,
+    "5 feet 8 inches – 5 feet 11 inches":3,
+    "Above 6 feet":4
+}
+weight_map = {
+    "Below 45 kg":0,
+    "45-55 kg":1,
+    "56-65 kg":2,
+    "66-75 kg":3,
+    "76 kg or Above":4
+}
+smoking_map = {"No":0, "Yes":1, "Occasionally":2, "Used to":3, "Prefer not to say":4}
+residential_map = {"No":0, "Yes":1}
+marital_map = {"Unmarried":0, "Married":1}
+sleep_map = {
+    "Low (<5 hours)":0,
+    "Moderate (5-6 hours)":1,
+    "Optimal (7-8 hours)":2,
+    "Excessive (9+ hours)":3
+}
+stress_map = {
+    "Low/Calm":0,
+    "Moderate":1,
+    "High/Exam Stress":2,
+    "Very High":3
+}
+activity_map = {
+    "Sedentary (Mostly sitting/studying)":0,
+    "Light (Walking to class/stairs)":1,
+    "Moderate (Gym/Sports <60 mins)":2,
+    "Vigorous (Sports >60 mins/Heavy labor)":3
+}
+last_meal_map = {
+    "Less than 2 hours ago":0,
+    "2-4 hours ago":1,
+    "4-6 hours ago":2,
+    "More than 6 hours ago":3
+}
+hunger_map = {
+    "Not hungry at all":0,
+    "Slightly hungry":1,
+    "Moderately hungry":2,
+    "Very hungry":3
+}
+skipped_map = {
+    "No":0,
+    "Yes, I skipped Breakfast":1,
+    "Yes, I skipped Lunch":2,
+    "Yes, I skipped Dinner":3,
+    "Yes, I skipped multiple meals":4
 }
 
-# Encode inputs
-encoded_input = [encode_input(col, val) for col, val in user_input.items()]
-input_array = np.array([encoded_input])
+# Streamlit inputs
+age = st.selectbox("Age", list(age_map.keys()))
+gender = st.selectbox("Gender", list(gender_map.keys()))
+height = st.selectbox("Height", list(height_map.keys()))
+weight = st.selectbox("Weight", list(weight_map.keys()))
+smoking = st.selectbox("Smoking Status", list(smoking_map.keys()))
+residential = st.selectbox("Are you a residential student?", list(residential_map.keys()))
+marital = st.selectbox("Marital Status", list(marital_map.keys()))
+sleep = st.selectbox("How much sleep did you get last night?", list(sleep_map.keys()))
+stress = st.selectbox("Current stress/anxiety level", list(stress_map.keys()))
+activity = st.selectbox("Physical activity level today", list(activity_map.keys()))
+last_meal = st.selectbox("How long ago was your last proper meal?", list(last_meal_map.keys()))
+hunger = st.selectbox("Current hunger level", list(hunger_map.keys()))
+skipped_meal = st.selectbox("Have you skipped a meal today?", list(skipped_map.keys()))
 
-# ---------------------------
+# Prepare input dataframe for the model
+input_data = pd.DataFrame({
+    'Age':[age_map[age]],
+    'Gender':[gender_map[gender]],
+    'Height':[height_map[height]],
+    'Weight':[weight_map[weight]],
+    'Smoking Status':[smoking_map[smoking]],
+    'Are you a residential student (living in a hall/hostel)?':[residential_map[residential]],
+    'Marital Status':[marital_map[marital]],
+    'How much sleep did you get last night?':[sleep_map[sleep]],
+    'How would you describe your current stress/anxiety level?':[stress_map[stress]],
+    'What is your estimated physical activity level for today?':[activity_map[activity]],
+    'How long ago was your last proper meal (e.g., breakfast)?':[last_meal_map[last_meal]],
+    'How would you rate your current feeling of hunger?':[hunger_map[hunger]],
+    'Have you already skipped a meal today (Breakfast/Lunch/Dinner)?':[skipped_map[skipped_meal]]
+})
+
 # Prediction
-# ---------------------------
-if st.button("Get Meal Suggestion 🍴"):
-    prediction = model.predict(input_array)[0]
-    st.success(f"Recommended Meal Suggestion: {prediction}")
+if st.button("Get Meal Suggestion"):
+    prediction = model.predict(input_data)
+    st.success(f"🍽️ Predicted Meal Suggestion: {prediction[0]}")
